@@ -1,0 +1,10 @@
+apiVersion: skaffold/v1beta2
+kind: Config
+build:
+  artifacts:
+  - image: vkfont/tg-keel
+  tagPolicy:
+    envTemplate:
+      template: '{{.IMAGE_NAME}}:{{.TAG}}'
+deploy:
+  kubectl: {}

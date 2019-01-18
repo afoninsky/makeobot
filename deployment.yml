@@ -1,0 +1,53 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tg-bot
+  labels:
+    keel.sh/policy: force
+    keel.sh/trigger: poll
+  annotations:
+    keel.sh/pollSchedule: "@every 5m"
+    keel.sh/notify: testchannel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tg-bot
+  template:
+    metadata:
+      labels:
+        app: tg-bot
+    spec:
+      containers:
+      - name: tg-bot
+        image: vkfont/tg-keel:debug
+        imagePullPolicy: Always
+        env:
+        - name: TELEGRAM_API
+          value: 787635687:AAEGDXso4HpKiZWtqVbvACIifUGxzUQzWW4
+        - name: TELEGRAM_RECEIVER
+          value: "498146361"
+        - name: HTTP_LISTEN
+          value: :8080
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: tg-bot
+  name: tg-bot
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: tg-bot
+  type: ClusterIP
