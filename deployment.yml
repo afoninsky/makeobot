@@ -20,13 +20,19 @@ spec:
     spec:
       containers:
       - name: tg-bot
-        image: vkfont/tg-keel:debug
+        image: vkfont/tg-keel:0.0.1
         imagePullPolicy: Always
         env:
         - name: TELEGRAM_API
-          value: 787635687:AAEGDXso4HpKiZWtqVbvACIifUGxzUQzWW4
+          valueFrom:
+            secretKeyRef:
+              name: tg-bot-credentials
+              key: token
         - name: TELEGRAM_RECEIVER
-          value: "498146361"
+          valueFrom:
+            secretKeyRef:
+              name: tg-bot-credentials
+              key: chat-id
         - name: HTTP_LISTEN
           value: :8080
         - name: COMMON_NAME

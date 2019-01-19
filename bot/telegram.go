@@ -44,7 +44,10 @@ func handleIncominMessages(updates tgbotapi.UpdatesChannel, bot *tgbotapi.BotAPI
 		}
 
 		// TODO: ignore messages not from specified channel or not from unauthorized user
-		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+		// TODO: valid command workflow, ex.:
+		// https://go-telegram-bot-api.github.io/examples/commands/
+		// https://go-telegram-bot-api.github.io/examples/keyboard/
+		log.Printf("[%s in %d] %s", update.Message.From.UserName, update.Message.Chat.ID, update.Message.Text)
 		parts := strings.Split(update.Message.Text, " ")
 
 		switch parts[0] {
