@@ -1,48 +1,73 @@
+// hooks for external services (keel.sh, etc)
 package main
 
 import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	tpl "text/template"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
 )
 
 type keelDeploymentData struct {
 	Name    string `json:"name"`
 	Message string `json:"message"`
-	Level   string `json:"level"`
+	Service string
 }
 
-// const keelUpdateTemplate = template.Must(template.New("keel-update").Parse("*deployment update*\nSuccessfully updated bla-bla"))
+type httpInstance struct {
+	config             *viper.Viper
+	bot                *tgbotapi.BotAPI
+	tplDeploymentEvent *tpl.Template
+}
 
-// HealthHandler makes k8s be happy
-func (s *Sevice) httpHealthHandler(res http.ResponseWriter, req *http.Request) {
+// makes kubernetes happy
+func (h *httpInstance) health(res http.ResponseWriter, req *http.Request) {
 	// TODO: check keel, ex,: curl http://keel.default.svc.cluster.local:9300/healthz
 	res.Write([]byte("OK!\n"))
 }
 
-// KeelDeploymentHandler receives deployment information from keel and
-// sends it to the telegram
-func (s *Sevice) httpKeelNewDeploymentHandler(res http.ResponseWriter, req *http.Request) {
+// handle triggering of the new deployment by keel.sh
+func (h *httpInstance) keelDeploymentEvent(res http.ResponseWriter, req *http.Request) {
+
+	// decode incoming request
 	var data keelDeploymentData
 	dec := json.NewDecoder(req.Body)
 	defer req.Body.Close()
-
 	if err := dec.Decode(&data); err != nil {
 		http.Error(res, "unable to decode body", http.StatusBadRequest)
 		return
 	}
+	data.Service = h.config.GetString("common.name")
 
+	// send data to the messenger
 	var buffer bytes.Buffer
-	if err := s.tplNewDeployment.Execute(&buffer, data); err != nil {
+	if err := h.tplDeploymentEvent.Execute(&buffer, data); err != nil {
 		http.Error(res, "unable to parse remplate", http.StatusBadRequest)
 		return
 	}
-	msg := tgbotapi.NewMessageToChannel(s.config.GetString("telegram.receiver"), buffer.String())
+	msg := tgbotapi.NewMessageToChannel(h.config.GetString("telegram.receiver"), buffer.String())
 	msg.ParseMode = "Markdown"
+	h.bot.Send(msg)
 
-	s.bot.Send(msg)
-
+	//
 	res.Write([]byte("OK!\n"))
+}
+
+func initHTTPRouter(config *viper.Viper, bot *tgbotapi.BotAPI) *mux.Router {
+	router := mux.NewRouter()
+	http := &httpInstance{}
+
+	http.config = config
+	http.bot = bot
+	http.tplDeploymentEvent = tpl.Must(tpl.New("keel-deployment").Parse("*{{ .Service }}: {{ .Name }}*\n{{ .Message }}"))
+
+	router.HandleFunc("/health", http.health).Methods("GET", "OPTIONS")
+
+	router.HandleFunc("/hook/keel/deployment", http.keelDeploymentEvent).Methods("POST", "OPTIONS")
+
+	return router
 }

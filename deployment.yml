@@ -29,13 +29,15 @@ spec:
           value: "498146361"
         - name: HTTP_LISTEN
           value: :8080
+        - name: COMMON_NAME
+          value: streamlayer
         livenessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 8080
         readinessProbe:
           httpGet:
-            path: /
+            path: /health
             port: 8080
 ---
 apiVersion: v1

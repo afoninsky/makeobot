@@ -4,7 +4,7 @@ ENV GOOS linux
 ENV GOARCH amd64
 ENV GOBIN /bin
 WORKDIR /src
-COPY . /src
+COPY ./bot /src
 RUN go get -v
 RUN go build -a -installsuffix nocgo -o /service .
 
