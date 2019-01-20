@@ -35,8 +35,6 @@ spec:
               key: chat-id
         - name: HTTP_LISTEN
           value: :8080
-        - name: COMMON_NAME
-          value: streamlayer
         livenessProbe:
           httpGet:
             path: /health

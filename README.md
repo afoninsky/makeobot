@@ -3,3 +3,19 @@
 TAG=debug skaffold build
 kubectl -n default apply -f deployment.yml
 ```
+
+## Roadmap
+
+### keel
+- [x] notification about deployment
+- [x] trigger new deployment manually
+- [ ] notification about new approval
+- [ ] list of pending approvals
+- [ ] approve deployment
+
+###  concourse
+- [ ] notification about job result [kinda](https://github.com/mdb/concourse-webhook-resource)
+- [ ] trigger resource check [kinda](https://concourse-ci.org/resources.html#resource-webhook-token)
+
+### alertmanager
+- [ ] information about alerts [kinda](https://prometheus.io/docs/alerting/configuration/#webhook_config)
