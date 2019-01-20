@@ -14,6 +14,6 @@ func main() {
 		log.Fatal(tgErr)
 	}
 	router := initHTTPRouter(config, bot)
-	fmt.Printf("[%s] start http service on %s\n", config.GetString("common.name"), config.GetString("http.listen"))
+	fmt.Printf("start http service on %s\n", config.GetString("http.listen"))
 	log.Fatal(http.ListenAndServe(config.GetString("http.listen"), router))
 }

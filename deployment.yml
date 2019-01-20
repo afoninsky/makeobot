@@ -2,12 +2,12 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: tg-bot
-  labels:
-    keel.sh/policy: force
-    keel.sh/trigger: poll
-  annotations:
-    keel.sh/pollSchedule: "@every 5m"
-    keel.sh/notify: testchannel
+  # labels:
+  #   keel.sh/policy: force
+  #   keel.sh/trigger: poll
+  # annotations:
+  #   keel.sh/pollSchedule: "@every 5m"
+  #   keel.sh/notify: testchannel
 spec:
   replicas: 1
   selector:

@@ -32,16 +32,15 @@ func (h *httpInstance) health(res http.ResponseWriter, req *http.Request) {
 
 // handle triggering of the new deployment by keel.sh
 func (h *httpInstance) keelDeploymentEvent(res http.ResponseWriter, req *http.Request) {
-
 	// decode incoming request
 	var data keelDeploymentData
 	dec := json.NewDecoder(req.Body)
 	defer req.Body.Close()
+
 	if err := dec.Decode(&data); err != nil {
 		http.Error(res, "unable to decode body", http.StatusBadRequest)
 		return
 	}
-	data.Service = h.config.GetString("common.name")
 
 	// send data to the messenger
 	var buffer bytes.Buffer
@@ -52,8 +51,6 @@ func (h *httpInstance) keelDeploymentEvent(res http.ResponseWriter, req *http.Re
 	msg := tgbotapi.NewMessageToChannel(h.config.GetString("telegram.receiver"), buffer.String())
 	msg.ParseMode = "Markdown"
 	h.bot.Send(msg)
-
-	//
 	res.Write([]byte("OK!\n"))
 }
 
@@ -63,7 +60,7 @@ func initHTTPRouter(config *viper.Viper, bot *tgbotapi.BotAPI) *mux.Router {
 
 	http.config = config
 	http.bot = bot
-	http.tplDeploymentEvent = tpl.Must(tpl.New("keel-deployment").Parse("*{{ .Service }}: {{ .Name }}*\n{{ .Message }}"))
+	http.tplDeploymentEvent = tpl.Must(tpl.New("keel-deployment").Parse(deploymentEventTemplate))
 
 	router.HandleFunc("/health", http.health).Methods("GET", "OPTIONS")
 
