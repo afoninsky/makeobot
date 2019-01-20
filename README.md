@@ -6,6 +6,11 @@ kubectl -n default apply -f deployment.yml
 
 ## Roadmap
 
+### release pipeline
+- [ ] hook for semantic commits [kinda](https://github.com/fteem/git-semantic-commits)
+- [ ] CI pipeline: release on master [kinda](https://github.com/go-semantic-release/semantic-release)
+- [ ] CI pipeline: build docker image on release [kinda](https://goreleaser.com/docker/)
+
 ### keel
 - [x] notification about deployment
 - [x] trigger new deployment manually
