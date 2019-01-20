@@ -9,11 +9,13 @@ import (
 func main() {
 
 	config := loadConfig()
-	bot, tgErr := initTgBot(config)
-	if tgErr != nil {
-		log.Fatal(tgErr)
-	}
-	router := initHTTPRouter(config, bot)
+	router := initHTTPRouter(config)
+
+	// TODO: load services
+
+	// TODO: load notificators
+
 	fmt.Printf("start http service on %s\n", config.GetString("http.listen"))
 	log.Fatal(http.ListenAndServe(config.GetString("http.listen"), router))
+
 }
