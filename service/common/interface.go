@@ -1,5 +1,10 @@
 package common
 
+import (
+	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
+)
+
 // SeverityLevel specify severity of event
 type SeverityLevel int
 
@@ -20,32 +25,40 @@ const (
 
 // Event describes emittable events
 type Event struct {
-	Channel  string
+	Service  string
 	Name     string
 	Message  string
 	Link     string
 	Severity SeverityLevel
 }
 
-// Notifier is the interface which notification providers must implement
-type Notifier interface {
-
-	// sends notification about event
-	Notify(event Event) error
-
-	// disconnects from notification channel
-	Close()
+// Command describe available commands to the services
+type Command struct {
+	Command string
+	Args    []string
+	Sender  string
 }
 
-// Provider is the interface for communication with other services
-type Provider interface {
+// Router instance routes incoming events and commads between services
+type ServiceRouter interface {
+	// registers  service for routing
+	RegisterService(name string, ctx *AppContext, service ServiceProvider) error
+	// sends an event to all registered services
+	EmitEvent(event Event) error
+	// finds receiver and execute command returning result
+	ExecuteCommand(receiver string, command Command) error
+}
 
-	// perform some action with provider's resource
-	Action() error
+// ServiceProvider instance provides interface for executing commands
+type ServiceProvider interface {
+	Init(ctx *AppContext) error
+	OnEvent(event Event) error
+	OnCommand(command Command) error
+	Close() error
+}
 
-	// available commands
-	Help()
-
-	// disconnects from provider
-	Close()
+type AppContext struct {
+	Config *viper.Viper
+	HTTP   *mux.Router
+	Router ServiceRouter
 }
