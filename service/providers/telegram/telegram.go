@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"strconv"
+	"bytes"
 
 	tpl "text/template"
 
@@ -13,13 +14,6 @@ import (
 	"github.com/afoninsky/makeomatic/common"
 )
 
-const helpMessage = "" +
-	"[ChatOps bot](https://github.com/afoninsky/makeobot) welcomes you. Available commands are:\n\n" +
-	"`/ping` - check my liveness\n" +
-	"`/release image tag` - deploy new image using keel.sh" +
-	""
-
-const messageTemplate = "*{{ .Service }}: {{ .Name }}*\n{{ .Message }}"
 
 type Service struct {
 	logger *log.Logger
@@ -31,17 +25,18 @@ type Service struct {
 func (c *Service) Init(ctx *common.AppContext) (common.Help, error) {
 	c.logger = common.CreateLogger("telegram")
 	c.ctx = ctx
+	help := common.Help{}
 
-	c.tplMessage = tpl.Must(tpl.New("message").Parse(messageTemplate))
+	c.tplMessage = tpl.Must(tpl.New("message").Parse(ctx.Config.GetString("telegram.template")))
 
 	apiKey := ctx.Config.GetString("telegram.api")
 	if apiKey == "" {
-		return nil, errors.New("telegram.api is not set")
+		return help, errors.New("telegram.api is not set")
 	}
 
 	bot, err := tgbotapi.NewBotAPI(apiKey)
 	if err != nil {
-		return nil, err
+		return help, err
 	}
 	c.bot = bot
 
@@ -52,7 +47,7 @@ func (c *Service) Init(ctx *common.AppContext) (common.Help, error) {
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		return nil, err
+		return help, err
 	}
 	// wait for updates and clear backlog of old messages
 	time.Sleep(time.Millisecond * 500)
@@ -60,14 +55,25 @@ func (c *Service) Init(ctx *common.AppContext) (common.Help, error) {
 
 	go c.handleIncomingMessages(updates)
 
-	help := common.Help{}
 	return help, nil
 }
+
+// OnEvent displays rendered event in the chat
 func (c *Service) OnEvent(event common.Event) error {
+	var buffer bytes.Buffer
+	if err := c.tplMessage.Execute(&buffer, event); err != nil {
+		return err
+	}
+	// TODO: something with receivers
+	msg := tgbotapi.NewMessageToChannel(c.ctx.Config.GetString("telegram.channel"), buffer.String())
+	msg.ParseMode = "Markdown"
+	if _, err := c.bot.Send(msg); err != nil {
+		return err
+	}
 	return nil
 }
 
-// do nothing as telegram service does not receive commands from the other services
+// OnCommand does nothing as telegram service does not receive commands from the other services
 func (c *Service) OnCommand(command common.Command) error {
 	return nil
 }
@@ -84,6 +90,7 @@ func (c *Service) handleIncomingMessages(updates tgbotapi.UpdatesChannel) {
 
 		// send incoming command to the router
 		command := common.Command{
+			ID: strconv.Itoa(update.Message.MessageID),
 			Name: update.Message.Command(),
 			Args: strings.Split(update.Message.CommandArguments(), " "),
 			Sender: update.Message.From.UserName,

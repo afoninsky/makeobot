@@ -25,19 +25,20 @@ const (
 
 // Event describes emittable events
 type Event struct {
-	Service  string
-	Name     string
-	Message  string
-	Link     string
+	Service  string // event service source
+	Name     string // event name / type
+	Message  string // event content
+	Link     string // link to external system
 	Severity SeverityLevel
 }
 
 // Command describe available commands to the services
 type Command struct {
-	Name    string
-	Args    []string
-	Sender  string
-	Channel string
+	ID      string   // message id if command comes from telegram
+	Name    string   // command name: "ping", "deploy" etc
+	Args    []string // command additional arguments
+	Sender  string   // username if command come from telegram
+	Channel string   // channel id if command comes from telegram
 }
 
 type Help map[string]string
