@@ -34,10 +34,13 @@ type Event struct {
 
 // Command describe available commands to the services
 type Command struct {
-	Command string
+	Name    string
 	Args    []string
 	Sender  string
+	Channel string
 }
+
+type Help map[string]string
 
 // Router instance routes incoming events and commads between services
 type ServiceRouter interface {
@@ -46,15 +49,14 @@ type ServiceRouter interface {
 	// sends an event to all registered services
 	EmitEvent(event Event) error
 	// finds receiver and execute command returning result
-	ExecuteCommand(receiver string, command Command) error
+	ExecuteCommand(command Command) error
 }
 
 // ServiceProvider instance provides interface for executing commands
 type ServiceProvider interface {
-	Init(ctx *AppContext) error
+	Init(ctx *AppContext) (Help, error)
 	OnEvent(event Event) error
 	OnCommand(command Command) error
-	Close() error
 }
 
 type AppContext struct {
