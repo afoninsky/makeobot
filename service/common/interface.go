@@ -42,8 +42,6 @@ type Command struct {
 	Channel string   // channel id if command comes from telegram
 }
 
-type Help map[string]string
-
 // Router instance routes incoming events and commads between services
 type ServiceRouter interface {
 	// registers  service for routing
@@ -56,7 +54,7 @@ type ServiceRouter interface {
 
 // ServiceProvider instance provides interface for executing commands
 type ServiceProvider interface {
-	Init(ctx *AppContext) (Help, error)
+	Init(ctx *AppContext) (map[string]string, error)
 	OnEvent(event Event) error
 	OnCommand(command Command) error
 }

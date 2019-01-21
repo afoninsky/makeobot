@@ -15,7 +15,6 @@ import (
 	"github.com/afoninsky/makeomatic/common"
 )
 
-
 type Service struct {
 	logger *log.Logger
 	ctx *common.AppContext
@@ -24,12 +23,12 @@ type Service struct {
 	cache *cache.Cache
 }
 
-func (c *Service) Init(ctx *common.AppContext) (common.Help, error) {
+func (c *Service) Init(ctx *common.AppContext) (map[string]string, error) {
 	c.logger = common.CreateLogger("telegram")
 	c.ctx = ctx
 	c.cache = cache.New(1*time.Minute, 10*time.Minute)
 	
-	help := common.Help{}
+	help := map[string]string{}
 
 	c.tplMessage = tpl.Must(tpl.New("message").Parse(ctx.Config.GetString("telegram.template")))
 
