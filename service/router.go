@@ -54,6 +54,7 @@ func (r *router) ExecuteCommand(command common.Command)  error {
 		}
 		event := common.Event{
 			Message: message,
+			RootID: command.ID,
 		}
 		if err := r.EmitEvent(event); err != nil {
 			return err
@@ -62,6 +63,7 @@ func (r *router) ExecuteCommand(command common.Command)  error {
 	case "ping":
 		event := common.Event{
 			Message: "pong",
+			RootID: command.ID,
 		}
 		if err := r.EmitEvent(event); err != nil {
 			return err

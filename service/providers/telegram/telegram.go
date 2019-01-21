@@ -10,6 +10,7 @@ import (
 
 	tpl "text/template"
 
+	"github.com/patrickmn/go-cache"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/afoninsky/makeomatic/common"
 )
@@ -20,11 +21,14 @@ type Service struct {
 	ctx *common.AppContext
 	bot *tgbotapi.BotAPI
 	tplMessage *tpl.Template
+	cache *cache.Cache
 }
 
 func (c *Service) Init(ctx *common.AppContext) (common.Help, error) {
 	c.logger = common.CreateLogger("telegram")
 	c.ctx = ctx
+	c.cache = cache.New(1*time.Minute, 10*time.Minute)
+	
 	help := common.Help{}
 
 	c.tplMessage = tpl.Must(tpl.New("message").Parse(ctx.Config.GetString("telegram.template")))
@@ -64,8 +68,8 @@ func (c *Service) OnEvent(event common.Event) error {
 	if err := c.tplMessage.Execute(&buffer, event); err != nil {
 		return err
 	}
-	// TODO: something with receivers
-	msg := tgbotapi.NewMessageToChannel(c.ctx.Config.GetString("telegram.channel"), buffer.String())
+	chatID := c.guessChatID(event.RootID)
+	msg := tgbotapi.NewMessageToChannel(chatID, buffer.String())
 	msg.ParseMode = "Markdown"
 	if _, err := c.bot.Send(msg); err != nil {
 		return err
@@ -78,6 +82,14 @@ func (c *Service) OnCommand(command common.Command) error {
 	return nil
 }
 
+func (c *Service) guessChatID(rootID string) string {
+	chatID, found := c.cache.Get(rootID)
+	if found {
+		return chatID.(string)
+	}
+	return c.ctx.Config.GetString("telegram.defaultChannel")
+}
+
 func (c *Service) handleIncomingMessages(updates tgbotapi.UpdatesChannel) {
 
 	for update := range updates {
@@ -88,9 +100,15 @@ func (c *Service) handleIncomingMessages(updates tgbotapi.UpdatesChannel) {
 
 		c.logger.Printf("[%s in %d said] %s", update.Message.From.UserName, update.Message.Chat.ID, update.Message.Text)
 
+		// store command id so response can be forwarded to this user / chat
+		messageID := strconv.Itoa(update.Message.MessageID)
+		chatID := strconv.FormatInt(update.Message.Chat.ID, 10)
+
+		c.cache.Set(messageID, chatID, cache.DefaultExpiration)
+
 		// send incoming command to the router
 		command := common.Command{
-			ID: strconv.Itoa(update.Message.MessageID),
+			ID: messageID,
 			Name: update.Message.Command(),
 			Args: strings.Split(update.Message.CommandArguments(), " "),
 			Sender: update.Message.From.UserName,

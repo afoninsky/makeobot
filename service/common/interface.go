@@ -30,11 +30,12 @@ type Event struct {
 	Message  string // event content
 	Link     string // link to external system
 	Severity SeverityLevel
+	RootID   string // id of the root event or command which create this event
 }
 
 // Command describe available commands to the services
 type Command struct {
-	ID      string   // message id if command comes from telegram
+	ID      string   // optional command id
 	Name    string   // command name: "ping", "deploy" etc
 	Args    []string // command additional arguments
 	Sender  string   // username if command come from telegram
