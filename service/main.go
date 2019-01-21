@@ -7,8 +7,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
-
-	_ "github.com/afoninsky/makeomatic/providers/telegram"
+	"github.com/afoninsky/makeomatic/providers/telegram"
+	"github.com/afoninsky/makeomatic/common"
 )
 
 type instance struct {
@@ -18,6 +18,8 @@ type instance struct {
 
 func main() {
 
+	var notifier common.Notifier
+
 	config := loadConfig()
 	router := initHTTPRouter(config)
 
@@ -25,9 +27,14 @@ func main() {
 	// 	config: config,
 	// 	router: router,
 	// }
-	// TODO: load services
 
-	// TODO: load notificators
+	// init notification service
+	notifier, nErr := telegram.New(config, router)
+	if nErr != nil {
+		log.Fatal(nErr)
+	}
+	defer notifier.Close()
+
 
 	fmt.Printf("start http service on %s\n", config.GetString("http.listen"))
 	log.Fatal(http.ListenAndServe(config.GetString("http.listen"), router))
