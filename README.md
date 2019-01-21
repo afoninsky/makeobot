@@ -24,3 +24,7 @@ kubectl -n default apply -f deployment.yml
 
 ### alertmanager
 - [ ] information about alerts [kinda](https://prometheus.io/docs/alerting/configuration/#webhook_config)
+
+### github
+- [ ] subscribe to releases
+- [ ] inform about new releases
