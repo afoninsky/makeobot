@@ -4,10 +4,14 @@ TAG=debug skaffold build
 kubectl -n default apply -f deployment.yml
 ```
 
+### Providers
+- telegram
+- keel
+
 ## Roadmap
 
 ### release pipeline
-- [ ] hook for semantic commits [kinda](https://github.com/fteem/git-semantic-commits)
+- [x] hook for semantic commits [kinda](https://github.com/fteem/git-semantic-commits)
 - [ ] CI pipeline: release on master [kinda](https://github.com/go-semantic-release/semantic-release)
 - [ ] CI pipeline: build docker image on release [kinda](https://goreleaser.com/docker/)
 
@@ -24,3 +28,7 @@ kubectl -n default apply -f deployment.yml
 
 ### alertmanager
 - [ ] information about alerts [kinda](https://prometheus.io/docs/alerting/configuration/#webhook_config)
+
+### github
+- [ ] subscribe to releases
+- [ ] inform about new releases
