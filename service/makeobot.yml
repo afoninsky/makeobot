@@ -10,3 +10,5 @@ telegram:
 
 keel:
   host: keel.default.svc.cluster.local
+  hook:
+    deployment: /keel/deployment

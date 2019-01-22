@@ -6,31 +6,31 @@ import (
 )
 
 // SeverityLevel specify severity of event
-type SeverityLevel int
+type SeverityLevel string
 
 const (
 	// Info event means that no remedial action is required
-	Info SeverityLevel = 1 + iota
+	Info SeverityLevel = "info"
 	// Warning event means that investigate to decide whether any action is required
-	Warning
+	Warning = "warn"
 	// Minor event means that action is required, but the situation is not serious at this time
-	Minor
+	Minor = "minor"
 	// Major event means that action is required immediately
-	Major
+	Major = "major"
 	// Critical event means that action is required immediately because the scope of the problem has increased, investigate critical alerts or events immediately
-	Critical
+	Critical = "critical"
 	// Fatal event means that an error has occurred but it is too late to take any remedial action to address it
-	Fatal
+	Fatal = "fatal"
 )
 
 // Event describes emittable events
 type Event struct {
-	Service  string // event service source
-	Name     string // event name / type
-	Message  string // event content
-	Link     string // link to external system
-	Severity SeverityLevel
-	RootID   string // id of the root event or command which create this event
+	Service  string        `json:"service"` // event service source
+	Name     string        `json:"name"`    // event name / type
+	Message  string        `json:"message"` // event content
+	Link     string        `json:"link"`    // link to external system
+	Severity SeverityLevel `json:"level"`
+	RootID   string        `json:"root_id"` // id of the root event or command which has created this event
 }
 
 // Command describe available commands to the services

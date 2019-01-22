@@ -38,6 +38,7 @@ func (r *router) ListCommands() map[string]common.CommandInfo {
 }
 
 func (r *router) EmitEvent(event common.Event) error {
+	r.logger.Printf("<- event '%s: %s' from %s", event.Name, event.Message, event.Service)
 	for name, service := range r.services {
 		if err := service.OnEvent(event); err != nil {
 			r.logger.Printf("\"%s returned error: %s\"", name, err.Error())
@@ -47,6 +48,8 @@ func (r *router) EmitEvent(event common.Event) error {
 }
 
 func (r *router) ExecuteCommandString(message, messageID, sender string) error {
+	r.logger.Printf("-> message '%s' from %s", message, sender)
+
 	parts := strings.Split(message, " ")
 	for i := len(parts); i > 0; i-- {
 		testCmd := strings.Join(parts[:i], " ")

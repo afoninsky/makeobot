@@ -134,7 +134,7 @@ func (c *Service) handleIncomingMessages(updates tgbotapi.UpdatesChannel) {
 			continue
 		}
 
-		c.logger.Printf("[%s in %d said] %s", update.Message.From.UserName, update.Message.Chat.ID, update.Message.Text)
+		// c.logger.Printf("[%s in %d said] %s", update.Message.From.UserName, update.Message.Chat.ID, update.Message.Text)
 
 		// store command id so response can be forwarded to this user / chat
 		messageID := strconv.Itoa(update.Message.MessageID)

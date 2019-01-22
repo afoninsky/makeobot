@@ -21,12 +21,12 @@ type Service struct {
 func (c *Service) Init(ctx *common.AppContext) (error) {
 	c.logger = common.CreateLogger("keel")
 	c.ctx = ctx
+	ctx.HTTP.HandleFunc(ctx.Config.GetString("keel.hook.deployment"), c.handleDeploymentEvent).Methods("POST", "OPTIONS")
 	return nil
 }
 
 // OnEvent ...
 func (c *Service) OnEvent(event common.Event) error {
-	//
 	return nil
 }
 
@@ -74,4 +74,30 @@ func (c *Service) updateKeelDeployment(name, tag string) error {
 	jsonValue, _ := json.Marshal(values)
 	_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
 	return err
+}
+
+// https://keel.sh/v1/guide/documentation.html#Webhook-notifications
+/**
+curl -X POST $URL \
+  -H 'content-type: application/json' \
+  -d '{
+  "name": "update deployment",
+  "message": "Successfully updated deployment default/wd (karolisr/webhook-demo:0.0.10)",
+  "createdAt": "2017-07-08T10:08:45.226565869+01:00"
+}'
+*/
+func (c *Service) handleDeploymentEvent(res http.ResponseWriter, req *http.Request) {
+	// decode incoming request
+	var event common.Event
+	dec := json.NewDecoder(req.Body)
+	defer req.Body.Close()
+	if err := dec.Decode(&event); err != nil {
+		http.Error(res, "unable to decode body", http.StatusBadRequest)
+		return
+	}
+	event.Service = "keel.sh"
+	event.Severity = common.Info
+	c.ctx.Router.EmitEvent(event)
+
+	res.Write([]byte("OK!\n"))
 }
