@@ -4,9 +4,9 @@ import (
 	"log"
 	"time"
 	"errors"
-	"strings"
 	"strconv"
 	"bytes"
+	"fmt"
 
 	tpl "text/template"
 
@@ -15,6 +15,10 @@ import (
 	"github.com/afoninsky/makeomatic/common"
 )
 
+const helpMessage = "" +
+	"[ChatOps bot](https://github.com/afoninsky/makeobot) welcomes you. Available commands are:\n\n"
+
+// Service ..
 type Service struct {
 	logger *log.Logger
 	ctx *common.AppContext
@@ -23,23 +27,22 @@ type Service struct {
 	cache *cache.Cache
 }
 
-func (c *Service) Init(ctx *common.AppContext) (map[string]string, error) {
+// Init ..
+func (c *Service) Init(ctx *common.AppContext) (error) {
 	c.logger = common.CreateLogger("telegram")
 	c.ctx = ctx
 	c.cache = cache.New(1*time.Minute, 10*time.Minute)
 	
-	help := map[string]string{}
-
 	c.tplMessage = tpl.Must(tpl.New("message").Parse(ctx.Config.GetString("telegram.template")))
 
 	apiKey := ctx.Config.GetString("telegram.api")
 	if apiKey == "" {
-		return help, errors.New("telegram.api is not set")
+		return errors.New("telegram.api is not set")
 	}
 
 	bot, err := tgbotapi.NewBotAPI(apiKey)
 	if err != nil {
-		return help, err
+		return err
 	}
 	c.bot = bot
 
@@ -50,7 +53,7 @@ func (c *Service) Init(ctx *common.AppContext) (map[string]string, error) {
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		return help, err
+		return err
 	}
 	// wait for updates and clear backlog of old messages
 	time.Sleep(time.Millisecond * 500)
@@ -58,7 +61,7 @@ func (c *Service) Init(ctx *common.AppContext) (map[string]string, error) {
 
 	go c.handleIncomingMessages(updates)
 
-	return help, nil
+	return nil
 }
 
 // OnEvent displays rendered event in the chat
@@ -76,9 +79,43 @@ func (c *Service) OnEvent(event common.Event) error {
 	return nil
 }
 
-// OnCommand does nothing as telegram service does not receive commands from the other services
-func (c *Service) OnCommand(command common.Command) error {
-	return nil
+// ListCommands ...
+func (c *Service) ListCommands() []common.CommandInfo {
+	return []common.CommandInfo{
+		common.CommandInfo{
+			Name: "help",
+			Description: "display this help",
+		},
+		common.CommandInfo{
+			Name: "ping",
+			Description: "ensure chatbot is available",
+			// Example: "qwe asd",
+		},
+	}
+}
+
+// DoCommand ...
+func (c *Service) DoCommand(cmd common.Command) error {
+	switch cmd.Name {
+	case "help":
+		message := helpMessage
+		for _, info := range c.ctx.Router.ListCommands() {
+			message += fmt.Sprintf("/%s - %s\n", defaults(info.Example, info.Name), info.Description)
+		}
+		event := common.Event{
+			Message: message,
+			RootID: cmd.ID,
+		}
+		return c.ctx.Router.EmitEvent(event)
+	case "ping":
+		event := common.Event{
+			Message: "I'm alive",
+			RootID: cmd.ID,
+		}
+		return c.ctx.Router.EmitEvent(event)
+	}
+
+	return errors.New("I don't know that command")
 }
 
 func (c *Service) guessChatID(rootID string) string {
@@ -102,27 +139,27 @@ func (c *Service) handleIncomingMessages(updates tgbotapi.UpdatesChannel) {
 		// store command id so response can be forwarded to this user / chat
 		messageID := strconv.Itoa(update.Message.MessageID)
 		chatID := strconv.FormatInt(update.Message.Chat.ID, 10)
-
-		c.cache.Set(messageID, chatID, cache.DefaultExpiration)
+		c.cache.Set(messageID, chatID, cache.DefaultExpiration,)
 
 		// send incoming command to the router
-		command := common.Command{
-			ID: messageID,
-			Name: update.Message.Command(),
-			Args: strings.Split(update.Message.CommandArguments(), " "),
-			Sender: update.Message.From.UserName,
-			Channel: strconv.FormatInt(update.Message.Chat.ID, 10),
-		}
-		err := c.ctx.Router.ExecuteCommand(command)
-		if err != nil {
+		message := update.Message.Command() + " " + update.Message.CommandArguments()
+		sender := update.Message.From.UserName
+		if err := c.ctx.Router.ExecuteCommandString(message, messageID, sender); err != nil {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 			msg.ParseMode = "Markdown"
 			msg.ReplyToMessageID = update.Message.MessageID	
 			msg.Text = err.Error()
-		if _, err := c.bot.Send(msg); err != nil {
-			c.logger.Println(err)
+			if _, err := c.bot.Send(msg); err != nil {
+				c.logger.Println(err)
+			}
 		}
-	}
 
 	}
+}
+
+func defaults(value, def string) string {
+	if value == "" {
+		return def
+	}
+	return value
 }

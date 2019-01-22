@@ -3,36 +3,38 @@ package main
 import (
 	"errors"
 	"log"
-	"fmt"
+	"strings"
 
 	"github.com/afoninsky/makeomatic/common"
 )
-
-const helpMessage = "" +
-	"[ChatOps bot](https://github.com/afoninsky/makeobot) welcomes you. Available commands are:\n\n"
 
 type router struct {
 	// map service name to its instance
 	services map[string]common.ServiceProvider
 	// map command to service name
-	commands map[string]string
+	commands map[string]common.CommandInfo
 	// information about available commands
-	help map[string]string
 	logger   *log.Logger
 }
 
 func (r *router) RegisterService(name string, ctx *common.AppContext, service common.ServiceProvider) error {
-	help, err := service.Init(ctx)
-	if err != nil {
+	// init target service
+	if err := service.Init(ctx); err != nil {
 		return err
 	}
 	r.services[name] = service
-	for command, description := range help {
-		r.commands[command] = name
-		r.help[command] = description
+
+	// load command information
+	for _, cmd := range service.ListCommands() {
+		cmd.Service = name
+		r.commands[cmd.Name] = cmd
 	}
 	r.logger.Printf("service \"%s\" is enabled", name)
 	return nil
+}
+
+func (r *router) ListCommands() map[string]common.CommandInfo {
+	return r.commands
 }
 
 func (r *router) EmitEvent(event common.Event) error {
@@ -44,44 +46,30 @@ func (r *router) EmitEvent(event common.Event) error {
 	return nil
 }
 
-func (r *router) ExecuteCommand(command common.Command)  error {
-	switch command.Name {
-	// display help
-	case "help":
-		message := helpMessage
-		for name, desc := range r.help {
-			message += fmt.Sprintf("/%s - %s", name, desc)
+func (r *router) ExecuteCommandString(message, messageID, sender string) error {
+	parts := strings.Split(message, " ")
+	for i := len(parts); i > 0; i-- {
+		testCmd := strings.Join(parts[:i], " ")
+		info, found := r.commands[testCmd]
+		if !found {
+			continue
 		}
-		event := common.Event{
-			Message: message,
-			RootID: command.ID,
+		command := common.Command{
+			ID: messageID,
+			Name: testCmd,
+			Args: parts[i:],
+			Sender: sender,
 		}
-		if err := r.EmitEvent(event); err != nil {
-			return err
-		}
-	// emit "pong" event
-	case "ping":
-		event := common.Event{
-			Message: "pong",
-			RootID: command.ID,
-		}
-		if err := r.EmitEvent(event); err != nil {
-			return err
-		}
-	default:
-		return errors.New("I don't know that command")
+		serviceName := info.Service
+		return r.services[serviceName].DoCommand(command)
 	}
-	return nil
+	return errors.New("I don't know that command")
 }
 
 func InitServiceRouter() common.ServiceRouter {
-	help := map[string]string{
-		"ping": "check liveness",
-	}
 	return &router{
 		logger:   common.CreateLogger("router"),
 		services: make(map[string]common.ServiceProvider),
-		commands: make(map[string]string),
-		help: help,
+		commands: make(map[string]common.CommandInfo),
 	}
 }

@@ -35,28 +35,40 @@ type Event struct {
 
 // Command describe available commands to the services
 type Command struct {
-	ID      string   // optional command id
-	Name    string   // command name: "ping", "deploy" etc
-	Args    []string // command additional arguments
-	Sender  string   // username if command come from telegram
-	Channel string   // channel id if command comes from telegram
+	ID     string // optional command id, can be used as root id for the event
+	Name   string // command name: "ping", "deploy", "helm upgrade" etc
+	Args   []string
+	Sender string // username if command come from telegram
+}
+
+type CommandInfo struct {
+	Service     string
+	Name        string
+	Example     string
+	Description string
 }
 
 // Router instance routes incoming events and commads between services
 type ServiceRouter interface {
-	// registers  service for routing
+	// registers service for routing
 	RegisterService(name string, ctx *AppContext, service ServiceProvider) error
 	// sends an event to all registered services
 	EmitEvent(event Event) error
 	// finds receiver and execute command returning result
-	ExecuteCommand(command Command) error
+	ExecuteCommandString(message, messageID, sender string) error
+	ListCommands() map[string]CommandInfo
 }
 
 // ServiceProvider instance provides interface for executing commands
 type ServiceProvider interface {
-	Init(ctx *AppContext) (map[string]string, error)
+	// init service on start
+	Init(ctx *AppContext) error
+	// return available commands
+	ListCommands() []CommandInfo
+	// handle incoming event
 	OnEvent(event Event) error
-	OnCommand(command Command) error
+	// execute command returned in .Help
+	DoCommand(command Command) error
 }
 
 type AppContext struct {

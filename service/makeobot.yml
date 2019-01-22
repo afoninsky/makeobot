@@ -1,8 +1,12 @@
 http:
   listen: localhost:8080
+
 telegram:
   defaultChannel: "-352224815"
   api: ""
   template: |
     *{{ if .Service }}{{ .Service }}: {{end}}{{ .Name }}*
     {{ .Message }}
+
+keel:
+  host: keel.default.svc.cluster.local
